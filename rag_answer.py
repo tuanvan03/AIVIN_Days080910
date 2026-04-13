@@ -423,6 +423,7 @@ def rag_answer(
     top_k_select: int = TOP_K_SELECT,
     use_rerank: bool = False,
     verbose: bool = False,
+    default:bool = True
 ) -> Dict[str, Any]:
     """
     Pipeline RAG hoàn chỉnh: query → retrieve → (rerank) → generate.
@@ -489,7 +490,7 @@ def rag_answer(
         print(f"[RAG] After select: {len(candidates)} chunks")
 
     # --- Bước 3: Build context và prompt ---
-    context_block = build_context_block(candidates)
+    context_block = build_context_block(candidates, default)
     prompt = build_grounded_prompt(query, context_block)
 
     if verbose:
@@ -517,7 +518,7 @@ def rag_answer(
 # SPRINT 3: SO SÁNH BASELINE VS VARIANT
 # =============================================================================
 
-def compare_retrieval_strategies(query: str) -> None:
+def compare_retrieval_strategies(query: str, default: bool = True) -> None:
     """
     So sánh các retrieval strategies với cùng một query.
 
@@ -536,7 +537,7 @@ def compare_retrieval_strategies(query: str) -> None:
     for strategy in strategies:
         print(f"\n--- Strategy: {strategy} ---")
         try:
-            result = rag_answer(query, retrieval_mode=strategy, verbose=False)
+            result = rag_answer(query=query, retrieval_mode=strategy, verbose=False, default=default)
             print(f"Answer: {result['answer']}")
             print(f"Sources: {result['sources']}")
         except NotImplementedError as e:
