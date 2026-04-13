@@ -295,7 +295,7 @@ def transform_query(query: str, strategy: str = "expansion") -> List[str]:
 # GENERATION — GROUNDED ANSWER FUNCTION
 # =============================================================================
 
-def build_context_block(chunks: List[Dict[str, Any]]) -> str:
+def build_context_block(chunks: List[Dict[str, Any]], default: bool = True) -> str:
     """
     Đóng gói danh sách chunks thành context block để đưa vào prompt.
 
@@ -303,22 +303,49 @@ def build_context_block(chunks: List[Dict[str, Any]]) -> str:
     Mỗi chunk có số thứ tự [1], [2], ... để model dễ trích dẫn.
     """
     context_parts = []
-    for i, chunk in enumerate(chunks, 1):
-        meta = chunk.get("metadata", {})
-        source = meta.get("source", "unknown")
-        section = meta.get("section", "")
-        score = chunk.get("score", 0)
-        text = chunk.get("text", "")
+    if default:
+        for i, chunk in enumerate(chunks, 1):
+            meta = chunk.get("metadata", {})
+            source = meta.get("source", "unknown")
+            section = meta.get("section", "")
+            score = chunk.get("score", 0)
+            text = chunk.get("text", "")
 
-        # TODO: Tùy chỉnh format nếu muốn (thêm effective_date, department, ...)
-        header = f"[{i}] {source}"
-        if section:
-            header += f" | {section}"
-        if score > 0:
-            header += f" | score={score:.2f}"
+            # TODO: Tùy chỉnh format nếu muốn (thêm effective_date, department, ...)
 
-        context_parts.append(f"{header}\n{text}")
+            header = f"[{i}] {source}"
+            if section:
+                header += f" | {section}"
+            if score > 0:
+                header += f" | score={score:.2f}"
 
+            context_parts.append(f"{header}\n{text}")
+    else:
+        n = len(chunks)
+
+        odds = [x for x in range(1, n + 1) if x % 2 != 0]
+        evens = [x for x in range(1, n + 1) if x % 2 == 0]
+        evens.reverse()
+        custom_order = odds + evens
+
+        for display_index in custom_order:
+            chunk = chunks[display_index - 1]
+            
+            meta = chunk.get("metadata", {})
+            source = meta.get("source", "unknown")
+            section = meta.get("section", "")
+            score = chunk.get("score", 0)
+            text = chunk.get("text", "")
+
+            header = f"[{display_index}] {source}"
+            
+            if section:
+                header += f" | {section}"
+            if score > 0:
+                header += f" | score={score:.2f}"
+
+            context_parts.append(f"{header}\n{text}")
+        
     return "\n\n".join(context_parts)
 
 
