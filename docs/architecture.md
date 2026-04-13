@@ -123,15 +123,14 @@ Answer:
 
 ```mermaid
 graph LR
-    A[User Query] --> B[Query Embedding]
-    B --> C[ChromaDB Vector Search]
-    C --> D[Top-10 Candidates]
-    D --> E{Rerank?}
-    E -->|Yes| F[Cross-Encoder]
-    E -->|No| G[Top-3 Select]
-    F --> G
-    G --> H[Build Context Block]
-    H --> I[Grounded Prompt]
-    I --> J[LLM]
-    J --> K[Answer + Citation]
+    A[User Query] --> B[Dense Search - ChromaDB]
+    A --> C[Sparse Search - BM25]
+    B --> D[Hybrid Fusion - RRF]
+    C --> D
+    D --> E[Top-3 Selection]
+    E --> F[Grounded Prompt Construction]
+    F --> G[LLM - gpt-4o-mini]
+    G --> H[Final Answer + Citation]
 ```
+
+![alt text](image.png)
