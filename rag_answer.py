@@ -320,7 +320,7 @@ def build_context_block(chunks: List[Dict[str, Any]], default: bool = True) -> s
             if score > 0:
                 header += f" | score={score:.2f}"
 
-            context_parts.append(f"{header}\n{text}")
+            context_parts.append(f"{header}\n{text}\n{meta}")
     else:
         n = len(chunks)
 
@@ -350,26 +350,50 @@ def build_context_block(chunks: List[Dict[str, Any]], default: bool = True) -> s
     return "\n\n".join(context_parts)
 
 
-def build_grounded_prompt(query: str, context_block: str) -> str:
-    """
-    Xây dựng grounded prompt theo 4 quy tắc từ slide:
-    1. Evidence-only: Chỉ trả lời từ retrieved context
-    2. Abstain: Thiếu context thì nói không đủ dữ liệu
-    3. Citation: Gắn source/section khi có thể
-    4. Short, clear, stable: Output ngắn, rõ, nhất quán
+# def build_grounded_prompt(query: str, context_block: str) -> str:
+#     """
+#     Xây dựng grounded prompt theo 4 quy tắc từ slide:
+#     1. Evidence-only: Chỉ trả lời từ retrieved context
+#     2. Abstain: Thiếu context thì nói không đủ dữ liệu
+#     3. Citation: Gắn source/section khi có thể
+#     4. Short, clear, stable: Output ngắn, rõ, nhất quán
 
-    TODO Sprint 2:
-    Đây là prompt baseline. Trong Sprint 3, bạn có thể:
-    - Thêm hướng dẫn về format output (JSON, bullet points)
-    - Thêm ngôn ngữ phản hồi (tiếng Việt vs tiếng Anh)
-    - Điều chỉnh tone phù hợp với use case (CS helpdesk, IT support)
-    """
-    prompt = f"""You are a grounded QA assistant. Follow these rules strictly:
-1. Answer ONLY using facts from the Context below. Do not use outside knowledge.
-2. If the Context is insufficient or irrelevant, reply exactly: "Không đủ dữ liệu để trả lời." (or the English equivalent if the question is in English).
-3. Cite supporting sources inline using [n] matching the Context indices.
-4. Be concise: 1-3 sentences or short bullets. No preamble, no speculation.
-5. Reply in the same language as the Question.
+#     TODO Sprint 2:
+#     Đây là prompt baseline. Trong Sprint 3, bạn có thể:
+#     - Thêm hướng dẫn về format output (JSON, bullet points)
+#     - Thêm ngôn ngữ phản hồi (tiếng Việt vs tiếng Anh)
+#     - Điều chỉnh tone phù hợp với use case (CS helpdesk, IT support)
+#     """
+#     prompt = f"""You are a grounded QA assistant. Follow these rules strictly:
+# 1. Answer ONLY using facts from the Context below. Do not use outside knowledge.
+# 2. If the Context is insufficient or irrelevant, reply exactly: "Không đủ dữ liệu để trả lời." (or the English equivalent if the question is in English).
+# 3. Cite supporting sources inline using [n] matching the Context indices.
+# 4. Be concise: 1-3 sentences or short bullets. No preamble, no speculation.
+# 5. Reply in the same language as the Question.
+
+# Question: {query}
+
+# Context:
+# {context_block}
+
+# Answer:"""
+#     return prompt
+def build_grounded_prompt(query: str, context_block: str) -> str:
+    """Grounded prompt: evidence-only, abstain, cite, version-aware, multi-source synthesis."""
+    prompt = f"""Bạn là trợ lý QA grounded. Trả lời câu hỏi CHỈ dựa trên Context bên dưới.
+
+QUY TẮC:
+1. Evidence-only: Không dùng kiến thức ngoài Context. Không suy đoán.
+2. Abstain: Nếu Context không đủ, trả lời đúng: "Không đủ dữ liệu để trả lời."
+3. Citation: Mọi fact phải kèm [n] theo chỉ số Context. Nếu câu hỏi cần thông tin từ nhiều nguồn, PHẢI cite ít nhất 2 nguồn khác nhau.
+4. Synthesis: Nếu Context có nhiều tài liệu liên quan, tổng hợp ĐẦY ĐỦ thông tin từ tất cả (không bỏ sót tài liệu nào liên quan).
+5. Version/Freshness: Nếu Context có nhiều phiên bản hoặc effective_date khác nhau:
+   - Ưu tiên phiên bản MỚI NHẤT làm câu trả lời chính.
+   - Nêu RÕ giá trị hiện tại VÀ giá trị cũ, kèm version/effective_date.
+   - KHÔNG trộn lẫn dữ liệu phiên bản cũ vào giá trị hiện tại.
+6. Specificity: Nêu đầy đủ con số, tên sản phẩm, điều kiện (ví dụ: "2 thiết bị", "Cisco AnyConnect") — không tóm tắt chung chung.
+7. Format: Ngắn gọn, 1-4 câu hoặc bullet. Không mở bài, không lặp câu hỏi.
+8. Language: Trả lời cùng ngôn ngữ với câu hỏi.
 
 Question: {query}
 
@@ -378,7 +402,6 @@ Context:
 
 Answer:"""
     return prompt
-
 
 def call_llm(prompt: str) -> str:
     """
@@ -534,7 +557,7 @@ def compare_retrieval_strategies(query: str, default: bool = True) -> None:
     print(f"Query: {query}")
     print('='*60)
 
-    strategies = ["dense", "hybrid"]  # Thêm "sparse" sau khi implement
+    strategies = ["dense", "sparse", "hybrid"]  # Thêm "sparse" sau khi implement
 
     for strategy in strategies:
         print(f"\n--- Strategy: {strategy} ---")
@@ -565,31 +588,31 @@ if __name__ == "__main__":
         "ERR-403-AUTH là lỗi gì?",  # Query không có trong docs → kiểm tra abstain
     ]
 
-    print("\n--- Sprint 2: Test Baseline (Dense) ---")
-    for query in test_queries:
-        print(f"\nQuery: {query}")
-        try:
-            result = rag_answer(query, retrieval_mode="dense", verbose=True)
-            print(f"Answer: {result['answer']}")
-            print(f"Sources: {result['sources']}")
-        except NotImplementedError:
-            print("Chưa implement — hoàn thành TODO trong retrieve_dense() và call_llm() trước.")
-        except Exception as e:
-            print(f"Lỗi: {e}")
+    # print("\n--- Sprint 2: Test Baseline (Dense) ---")
+    # for query in test_queries:
+    #     print(f"\nQuery: {query}")
+    #     try:
+    #         result = rag_answer(query, retrieval_mode="dense", verbose=True)
+    #         print(f"Answer: {result['answer']}")
+    #         print(f"Sources: {result['sources']}")
+    #     except NotImplementedError:
+    #         print("Chưa implement — hoàn thành TODO trong retrieve_dense() và call_llm() trước.")
+    #     except Exception as e:
+    #         print(f"Lỗi: {e}")
 
     # Uncomment sau khi Sprint 3 hoàn thành:
     # print("\n--- Sprint 3: So sánh strategies ---")
-    # compare_retrieval_strategies("Approval Matrix để cấp quyền là tài liệu nào?")
+    compare_retrieval_strategies("SLA xử lý ticket P1 đã thay đổi như nào so với phiên bản trước?")
     # compare_retrieval_strategies("ERR-403-AUTH")
 
-    print("\n\nViệc cần làm Sprint 2:")
-    print("  1. Implement retrieve_dense() — query ChromaDB")
-    print("  2. Implement call_llm() — gọi OpenAI hoặc Gemini")
-    print("  3. Chạy rag_answer() với 3+ test queries")
-    print("  4. Verify: output có citation không? Câu không có docs → abstain không?")
+    # print("\n\nViệc cần làm Sprint 2:")
+    # print("  1. Implement retrieve_dense() — query ChromaDB")
+    # print("  2. Implement call_llm() — gọi OpenAI hoặc Gemini")
+    # print("  3. Chạy rag_answer() với 3+ test queries")
+    # print("  4. Verify: output có citation không? Câu không có docs → abstain không?")
 
-    print("\nViệc cần làm Sprint 3:")
-    print("  1. Chọn 1 trong 3 variants: hybrid, rerank, hoặc query transformation")
-    print("  2. Implement variant đó")
-    print("  3. Chạy compare_retrieval_strategies() để thấy sự khác biệt")
-    print("  4. Ghi lý do chọn biến đó vào docs/tuning-log.md")
+    # print("\nViệc cần làm Sprint 3:")
+    # print("  1. Chọn 1 trong 3 variants: hybrid, rerank, hoặc query transformation")
+    # print("  2. Implement variant đó")
+    # print("  3. Chạy compare_retrieval_strategies() để thấy sự khác biệt")
+    # print("  4. Ghi lý do chọn biến đó vào docs/tuning-log.md")
