@@ -109,11 +109,9 @@ Answer:
 
 | Failure Mode | Triệu chứng | Cách kiểm tra |
 |-------------|-------------|---------------|
-| Index lỗi | Retrieve về docs cũ / sai version | `inspect_metadata_coverage()` trong index.py |
-| Chunking tệ | Chunk cắt giữa điều khoản | `list_chunks()` và đọc text preview |
-| Retrieval lỗi | Không tìm được expected source | `score_context_recall()` trong eval.py |
-| Generation lỗi | Answer không grounded / bịa | `score_faithfulness()` trong eval.py |
-| Token overload | Context quá dài → lost in the middle | Kiểm tra độ dài context_block |
+| Index lỗi |  Lặp đếm count chunks | `chunk_document` trong index.py |
+| Retriveval lỗi | Chưa bổ sung metadata cho LLM | `build_context_block()` trong rag_answer |
+
 
 ---
 
