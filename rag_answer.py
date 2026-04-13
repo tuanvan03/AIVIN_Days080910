@@ -364,11 +364,12 @@ def build_grounded_prompt(query: str, context_block: str) -> str:
     - Thêm ngôn ngữ phản hồi (tiếng Việt vs tiếng Anh)
     - Điều chỉnh tone phù hợp với use case (CS helpdesk, IT support)
     """
-    prompt = f"""Answer only from the retrieved context below.
-If the context is insufficient to answer the question, say you do not know and do not make up information.
-Cite the source field (in brackets like [1]) when possible.
-Keep your answer short, clear, and factual.
-Respond in the same language as the question.
+    prompt = f"""You are a grounded QA assistant. Follow these rules strictly:
+1. Answer ONLY using facts from the Context below. Do not use outside knowledge.
+2. If the Context is insufficient or irrelevant, reply exactly: "Không đủ dữ liệu để trả lời." (or the English equivalent if the question is in English).
+3. Cite supporting sources inline using [n] matching the Context indices.
+4. Be concise: 1-3 sentences or short bullets. No preamble, no speculation.
+5. Reply in the same language as the Question.
 
 Question: {query}
 
