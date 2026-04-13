@@ -14,7 +14,7 @@
   {
     "id": "gq02",
     "question": "Khi làm việc remote, tôi phải dùng VPN và được kết nối trên tối đa bao nhiêu thiết bị?",
-    "answer": "Có. Mỗi tài khoản được kết nối VPN trên tối đa 2 thiết bị cùng lúc [1].",
+    "answer": "Có. Mỗi tài khoản được kết nối VPN trên tối đa 2 thiết bị cùng lúc [1]. Khi làm việc remote, kết nối VPN là bắt buộc khi làm việc với hệ thống nội bộ [2]",
     "sources": [
       "support/helpdesk-faq.md",
       "hr/leave-policy-2026.pdf"
