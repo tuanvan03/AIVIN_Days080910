@@ -34,6 +34,7 @@ CHROMA_DB_DIR = Path(__file__).parent / "chroma_db"
 CHUNK_SIZE = 400       # tokens (ước lượng bằng số ký tự / 4)
 CHUNK_OVERLAP = 80     # tokens overlap giữa các chunk
 
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # =============================================================================
 # STEP 1: PREPROCESS
@@ -184,7 +185,10 @@ def _split_by_size(
     Hiện tại dùng split đơn giản theo ký tự.
     Cải thiện: split theo paragraph (\n\n) trước, rồi mới ghép đến khi đủ size.
     """
+    # print(chunk_chars)
+    # print(overlap_chars)
     if len(text) <= chunk_chars:
+        # print(f"{len(text)} <= {chunk_chars}")
         # Toàn bộ section vừa một chunk
         return [{
             "text": text,
@@ -196,6 +200,7 @@ def _split_by_size(
     # paragraphs = text.split("\n\n")
     # Ghép paragraphs lại cho đến khi gần đủ chunk_chars
     # Lấy overlap từ đoạn cuối chunk trước
+    print("I am here")
     chunks = []
     start = 0
     while start < len(text):
@@ -246,7 +251,7 @@ def get_embedding(text: str) -> List[float]:
     #     "TODO: Implement get_embedding().\n"
     #     "Chọn Option A (OpenAI) hoặc Option B (Sentence Transformers) trong TODO comment."
     # )
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    # client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = client.embeddings.create(
         input=text,
         model="text-embedding-3-small"
@@ -318,10 +323,10 @@ def build_index(docs_dir: Path = DOCS_DIR, db_dir: Path = CHROMA_DB_DIR) -> None
         total_chunks += len(chunks)
 
         # Placeholder để code không lỗi khi chưa implement
-        doc = preprocess_document(raw_text, str(filepath))
-        chunks = chunk_document(doc)
-        print(f"    → {len(chunks)} chunks (embedding chưa implement)")
-        total_chunks += len(chunks)
+        # doc = preprocess_document(raw_text, str(filepath))``
+        # chunks = chunk_document(doc)
+        # print(f"    → {len(chunks)} chunks (embedding chưa implement)")
+        # total_chunks += len(chunks)
 
     print(f"\nHoàn thành! Tổng số chunks: {total_chunks}")
     print("Lưu ý: Embedding chưa được implement. Xem TODO trong get_embedding() và build_index().")
@@ -355,7 +360,7 @@ def list_chunks(db_dir: Path = CHROMA_DB_DIR, n: int = 5) -> None:
             print(f"  Source: {meta.get('source', 'N/A')}")
             print(f"  Section: {meta.get('section', 'N/A')}")
             print(f"  Effective Date: {meta.get('effective_date', 'N/A')}")
-            print(f"  Text preview: {doc[:120]}...")
+            print(f"  Text preview: {doc}")
             print()
     except Exception as e:
         print(f"Lỗi khi đọc index: {e}")
@@ -431,7 +436,7 @@ if __name__ == "__main__":
 
     # Bước 3: Build index (yêu cầu implement get_embedding)
     print("\n--- Build Full Index ---")
-    print("Lưu ý: Cần implement get_embedding() trước khi chạy bước này!")
+    # print("Lưu ý: Cần implement get_embedding() trước khi chạy bước này!")
     # Uncomment dòng dưới sau khi implement get_embedding():
     # build_index()
 
