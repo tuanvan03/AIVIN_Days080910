@@ -515,63 +515,63 @@ if __name__ == "__main__":
     print("=" * 60)
 
     # Kiểm tra test questions
-    print(f"\nLoading test questions từ: {TEST_QUESTIONS_PATH}")
-    try:
-        with open(TEST_QUESTIONS_PATH, "r", encoding="utf-8") as f:
-            test_questions = json.load(f)
-        print(f"Tìm thấy {len(test_questions)} câu hỏi")
+    # print(f"\nLoading test questions từ: {TEST_QUESTIONS_PATH}")
+    # try:
+    #     with open(TEST_QUESTIONS_PATH, "r", encoding="utf-8") as f:
+    #         test_questions = json.load(f)
+    #     print(f"Tìm thấy {len(test_questions)} câu hỏi")
 
-        # In preview
-        for q in test_questions[:3]:
-            print(f"  [{q['id']}] {q['question']} ({q['category']})")
-        print("  ...")
+    #     # In preview
+    #     for q in test_questions[:3]:
+    #         print(f"  [{q['id']}] {q['question']} ({q['category']})")
+    #     print("  ...")
 
-    except FileNotFoundError:
-        print("Không tìm thấy file test_questions.json!")
-        test_questions = []
+    # except FileNotFoundError:
+    #     print("Không tìm thấy file test_questions.json!")
+    #     test_questions = []
 
-    # --- Chạy Baseline ---
-    print("\n--- Chạy Baseline ---")
-    try:
-        baseline_results = run_scorecard(
-            config=BASELINE_CONFIG,
-            test_questions=test_questions,
-            verbose=True,
-        )
+    # # --- Chạy Baseline ---
+    # print("\n--- Chạy Baseline ---")
+    # try:
+    #     baseline_results = run_scorecard(
+    #         config=BASELINE_CONFIG,
+    #         test_questions=test_questions,
+    #         verbose=True,
+    #     )
 
-        # Save scorecard
-        RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-        baseline_md = generate_scorecard_summary(baseline_results, "baseline_dense")
-        scorecard_path = RESULTS_DIR / "scorecard_baseline.md"
-        scorecard_path.write_text(baseline_md, encoding="utf-8")
-        print(f"\nScorecard lưu tại: {scorecard_path}")
+    #     # Save scorecard
+    #     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    #     baseline_md = generate_scorecard_summary(baseline_results, "baseline_dense")
+    #     scorecard_path = RESULTS_DIR / "scorecard_baseline.md"
+    #     scorecard_path.write_text(baseline_md, encoding="utf-8")
+    #     print(f"\nScorecard lưu tại: {scorecard_path}")
 
-    except Exception as e:
-        print(f"Lỗi: {e}")
-        baseline_results = []
+    # except Exception as e:
+    #     print(f"Lỗi: {e}")
+    #     baseline_results = []
 
-    # --- Chạy Variant ---
-    print("\n--- Chạy Variant ---")
-    try:
-        variant_results = run_scorecard(
-            config=VARIANT_CONFIG,
-            test_questions=test_questions,
-            verbose=True,
-        )
-        variant_md = generate_scorecard_summary(variant_results, VARIANT_CONFIG["label"])
-        filename = f"scorecard_{VARIANT_CONFIG['label']}.md"
-        (RESULTS_DIR / filename).write_text(variant_md, encoding="utf-8")
-        print(f"\nScorecard variant lưu tại: {RESULTS_DIR / filename}")
+    # # --- Chạy Variant ---
+    # print("\n--- Chạy Variant ---")
+    # try:
+    #     variant_results = run_scorecard(
+    #         config=VARIANT_CONFIG,
+    #         test_questions=test_questions,
+    #         verbose=True,
+    #     )
+    #     variant_md = generate_scorecard_summary(variant_results, VARIANT_CONFIG["label"])
+    #     filename = f"scorecard_{VARIANT_CONFIG['label']}.md"
+    #     (RESULTS_DIR / filename).write_text(variant_md, encoding="utf-8")
+    #     print(f"\nScorecard variant lưu tại: {RESULTS_DIR / filename}")
 
-        # --- A/B Comparison ---
-        if baseline_results and variant_results:
-            compare_ab(
-                baseline_results,
-                variant_results,
-                output_csv="ab_comparison.csv"
-            )
-    except Exception as e:
-        print(f"Lỗi khi chạy variant: {e}")
+    #     # --- A/B Comparison ---
+    #     if baseline_results and variant_results:
+    #         compare_ab(
+    #             baseline_results,
+    #             variant_results,
+    #             output_csv="ab_comparison.csv"
+    #         )
+    # except Exception as e:
+    #     print(f"Lỗi khi chạy variant: {e}")
 
     # --- Grading Run (Chạy khi grading_questions.json được public) ---
     GRADING_QUESTIONS_PATH = Path(__file__).parent / "data" / "grading_questions.json"

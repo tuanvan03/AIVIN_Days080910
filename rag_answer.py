@@ -378,22 +378,46 @@ def build_context_block(chunks: List[Dict[str, Any]], default: bool = True) -> s
 
 # Answer:"""
 #     return prompt
+# def build_grounded_prompt(query: str, context_block: str) -> str:
+#     """Grounded prompt: evidence-only, abstain, cite, version-aware, multi-source synthesis."""
+#     prompt = f"""Bạn là trợ lý QA grounded. Trả lời câu hỏi CHỈ dựa trên Context bên dưới.
+
+# QUY TẮC:
+# 1. Evidence-only: Không dùng kiến thức ngoài Context. Không suy đoán.
+# 2. Abstain: Nếu Context không đủ, trả lời đúng: "Không đủ dữ liệu để trả lời."
+# 3. Citation: Mọi fact phải kèm [n] theo chỉ số Context. Nếu câu hỏi cần thông tin từ nhiều nguồn, PHẢI cite ít nhất 2 nguồn khác nhau.
+# 4. Synthesis: Nếu Context có nhiều tài liệu liên quan, tổng hợp ĐẦY ĐỦ thông tin từ tất cả (không bỏ sót tài liệu nào liên quan).
+# 5. Version/Freshness: Nếu Context có nhiều phiên bản hoặc effective_date khác nhau:
+#    - Ưu tiên phiên bản MỚI NHẤT làm câu trả lời chính.
+#    - Nêu RÕ giá trị hiện tại VÀ giá trị cũ, kèm version/effective_date.
+#    - KHÔNG trộn lẫn dữ liệu phiên bản cũ vào giá trị hiện tại.
+# 6. Specificity: Nêu đầy đủ con số, tên sản phẩm, điều kiện (ví dụ: "2 thiết bị", "Cisco AnyConnect") — không tóm tắt chung chung.
+# 7. Format: Ngắn gọn, 1-4 câu hoặc bullet. Không mở bài, không lặp câu hỏi.
+# 8. Language: Trả lời cùng ngôn ngữ với câu hỏi.
+
+# Question: {query}
+
+# Context:
+# {context_block}
+
+# Answer:"""
+#     return prompt
+
 def build_grounded_prompt(query: str, context_block: str) -> str:
-    """Grounded prompt: evidence-only, abstain, cite, version-aware, multi-source synthesis."""
-    prompt = f"""Bạn là trợ lý QA grounded. Trả lời câu hỏi CHỈ dựa trên Context bên dưới.
+    """Grounded prompt — 10 rules covering all grading criteria in grading_questions.json."""
+    prompt = f"""Bạn là trợ lý QA grounded. Trả lời CHỈ dựa trên Context bên dưới.
 
 QUY TẮC:
-1. Evidence-only: Không dùng kiến thức ngoài Context. Không suy đoán.
-2. Abstain: Nếu Context không đủ, trả lời đúng: "Không đủ dữ liệu để trả lời."
-3. Citation: Mọi fact phải kèm [n] theo chỉ số Context. Nếu câu hỏi cần thông tin từ nhiều nguồn, PHẢI cite ít nhất 2 nguồn khác nhau.
-4. Synthesis: Nếu Context có nhiều tài liệu liên quan, tổng hợp ĐẦY ĐỦ thông tin từ tất cả (không bỏ sót tài liệu nào liên quan).
-5. Version/Freshness: Nếu Context có nhiều phiên bản hoặc effective_date khác nhau:
-   - Ưu tiên phiên bản MỚI NHẤT làm câu trả lời chính.
-   - Nêu RÕ giá trị hiện tại VÀ giá trị cũ, kèm version/effective_date.
-   - KHÔNG trộn lẫn dữ liệu phiên bản cũ vào giá trị hiện tại.
-6. Specificity: Nêu đầy đủ con số, tên sản phẩm, điều kiện (ví dụ: "2 thiết bị", "Cisco AnyConnect") — không tóm tắt chung chung.
-7. Format: Ngắn gọn, 1-4 câu hoặc bullet. Không mở bài, không lặp câu hỏi.
-8. Language: Trả lời cùng ngôn ngữ với câu hỏi.
+1. Evidence-only & Abstain: Không dùng kiến thức ngoài Context, không suy đoán. Nếu Context không có thông tin cần thiết, trả lời đúng: "Không đủ dữ liệu để trả lời." và nêu ngắn gọn tài liệu hiện có không đề cập nội dung đó — tuyệt đối không bịa số liệu, mức phạt, con số, tên.
+2. Citation: Mọi fact phải kèm [n] theo chỉ số Context. Khi thông tin đến từ nhiều tài liệu, cite TẤT CẢ tài liệu liên quan (tối thiểu 2 nguồn khác nhau).
+3. Decisive opening: Câu hỏi có/không, được/không, bắt buộc/tùy chọn — kết luận dứt khoát ở câu đầu ("Có.", "Không được hoàn tiền.", "Không áp dụng."), rồi mới giải thích.
+4. Multi-part: Nếu câu hỏi có nhiều vế (VD: "có không? bao nhiêu? yêu cầu gì?"), trả lời RIÊNG từng vế, không gộp hoặc bỏ sót vế nào.
+5. Completeness: Nếu Context liệt kê nhiều mục áp dụng (ngoại lệ, điều kiện, bước, yêu cầu, kênh liên hệ...), nêu TẤT CẢ mục liên quan. Thà dư còn hơn thiếu.
+6. Scope & Scenario: Bám đúng phạm vi/nhánh quy trình mà câu hỏi mô tả — emergency vs thường, contractor vs nhân viên, P1 vs P2, remote vs onsite. Không mô tả nhánh mặc định khi câu hỏi nêu tình huống cụ thể.
+7. Disambiguation: Không trộn các mức/tier/giá trị gần nhau dù trùng con số (VD: Level 3 vs Level 4 approver; "3 ngày" nghỉ phép vs "3 ngày" nghỉ ốm vs "3 ngày" revoke access; P1 vs P2; v3 vs v4). Nêu rõ ngữ cảnh tương ứng.
+8. Version & Temporal: Ưu tiên phiên bản/hiệu lực MỚI NHẤT làm câu trả lời chính; khi câu hỏi đụng version history hoặc effective_date, nêu RÕ giá trị hiện tại + giá trị cũ + version/effective_date kèm theo, và xác định đơn/ca nào thuộc phiên bản nào.
+9. Specificity & Modality: Giữ NGUYÊN mọi con số, %, thời hạn, tên vai trò, tên sản phẩm, điều khoản, URL, hotline (VD: "110%", "4 giờ", "24 giờ", "90 ngày", "5 ngày làm việc", "IT Manager + CISO", "Cisco AnyConnect", "ext. 9999", "Điều 3"). Giữ nguyên tính chất bắt buộc / tùy chọn / có thể / được phép đúng như Context.
+10. Format & Language: Ngắn gọn 1-6 câu hoặc bullet, không mở bài, không lặp câu hỏi. Trả lời cùng ngôn ngữ với câu hỏi.
 
 Question: {query}
 
@@ -582,27 +606,27 @@ if __name__ == "__main__":
 
     # Test queries từ data/test_questions.json
     test_queries = [
-        "SLA xử lý ticket P1 là bao lâu?",
-        "Khách hàng có thể yêu cầu hoàn tiền trong bao nhiêu ngày?",
-        "Ai phải phê duyệt để cấp quyền Level 3?",
-        "ERR-403-AUTH là lỗi gì?",  # Query không có trong docs → kiểm tra abstain
+        "Khi làm việc remote, tôi phải dùng VPN và được kết nối trên tối đa bao nhiêu thiết bị?"
+        # "Khách hàng có thể yêu cầu hoàn tiền trong bao nhiêu ngày?",
+        # "Ai phải phê duyệt để cấp quyền Level 3?",
+        # "ERR-403-AUTH là lỗi gì?",  # Query không có trong docs → kiểm tra abstain
     ]
 
-    # print("\n--- Sprint 2: Test Baseline (Dense) ---")
-    # for query in test_queries:
-    #     print(f"\nQuery: {query}")
-    #     try:
-    #         result = rag_answer(query, retrieval_mode="dense", verbose=True)
-    #         print(f"Answer: {result['answer']}")
-    #         print(f"Sources: {result['sources']}")
-    #     except NotImplementedError:
-    #         print("Chưa implement — hoàn thành TODO trong retrieve_dense() và call_llm() trước.")
-    #     except Exception as e:
-    #         print(f"Lỗi: {e}")
+    print("\n--- Sprint 2: Test Baseline (Dense) ---")
+    for query in test_queries:
+        print(f"\nQuery: {query}")
+        try:
+            result = rag_answer(query, retrieval_mode="dense", verbose=True)
+            print(f"Answer: {result['answer']}")
+            print(f"Sources: {result['sources']}")
+        except NotImplementedError:
+            print("Chưa implement — hoàn thành TODO trong retrieve_dense() và call_llm() trước.")
+        except Exception as e:
+            print(f"Lỗi: {e}")
 
     # Uncomment sau khi Sprint 3 hoàn thành:
     # print("\n--- Sprint 3: So sánh strategies ---")
-    compare_retrieval_strategies("SLA xử lý ticket P1 đã thay đổi như nào so với phiên bản trước?")
+    # compare_retrieval_strategies("Khi làm việc remote, tôi phải dùng VPN và được kết nối trên tối đa bao nhiêu thiết bị?")
     # compare_retrieval_strategies("ERR-403-AUTH")
 
     # print("\n\nViệc cần làm Sprint 2:")
