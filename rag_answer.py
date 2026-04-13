@@ -130,10 +130,29 @@ def retrieve_sparse(query: str, top_k: int = TOP_K_SEARCH) -> List[Dict[str, Any
         scores = bm25.get_scores(tokenized_query)
         top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
     """
-    # TODO Sprint 3: Implement BM25 search
-    # Tạm thời return empty list
-    print("[retrieve_sparse] Chưa implement — Sprint 3")
-    return []
+    import chromadb
+    from rank_bm25 import BM25Okapi
+    from index import CHROMA_DB_DIR
+
+    client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
+    collection = client.get_collection("rag_lab")
+    all_data = collection.get(include=["documents", "metadatas"])
+    all_chunks = [
+        {"text": doc, "metadata": meta}
+        for doc, meta in zip(all_data["documents"], all_data["metadatas"])
+    ]
+
+    corpus = [chunk["text"] for chunk in all_chunks]
+    tokenized_corpus = [doc.lower().split() for doc in corpus]
+    bm25 = BM25Okapi(tokenized_corpus)
+    tokenized_query = query.lower().split()
+    scores = bm25.get_scores(tokenized_query)
+    top_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+
+    return [
+        {"text": all_chunks[i]["text"], "metadata": all_chunks[i]["metadata"], "score": float(scores[i])}
+        for i in top_indices
+    ]
 
 
 # =============================================================================
@@ -169,10 +188,32 @@ def retrieve_hybrid(
     - Corpus có cả câu tự nhiên VÀ tên riêng, mã lỗi, điều khoản
     - Query như "Approval Matrix" khi doc đổi tên thành "Access Control SOP"
     """
-    # TODO Sprint 3: Implement hybrid RRF
-    # Tạm thời fallback về dense
-    print("[retrieve_hybrid] Chưa implement RRF — fallback về dense")
-    return retrieve_dense(query, top_k)
+    dense_results = retrieve_dense(query, top_k=top_k)
+    sparse_results = retrieve_sparse(query, top_k=top_k)
+
+    # Gán rank cho từng doc theo text (dùng text làm key)
+    dense_rank = {c["text"]: i for i, c in enumerate(dense_results)}
+    sparse_rank = {c["text"]: i for i, c in enumerate(sparse_results)}
+
+    # Gom tất cả unique docs
+    all_texts = {c["text"]: c for c in dense_results + sparse_results}
+
+    # Tính RRF score cho từng doc
+    rrf_scores = {}
+    for text in all_texts:
+        d_rank = dense_rank.get(text, len(dense_results))
+        s_rank = sparse_rank.get(text, len(sparse_results))
+        rrf_scores[text] = (
+            dense_weight * (1 / (60 + d_rank)) +
+            sparse_weight * (1 / (60 + s_rank))
+        )
+
+    # Sort theo RRF score giảm dần, trả về top_k
+    sorted_texts = sorted(rrf_scores, key=lambda t: rrf_scores[t], reverse=True)[:top_k]
+    return [
+        {**all_texts[t], "score": rrf_scores[t]}
+        for t in sorted_texts
+    ]
 
 
 # =============================================================================
