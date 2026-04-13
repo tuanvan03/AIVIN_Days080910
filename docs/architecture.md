@@ -19,7 +19,7 @@
 
 **Mô tả ngắn gọn:**
 > TODO: Mô tả hệ thống trong 2-3 câu. Nhóm xây gì? Cho ai dùng? Giải quyết vấn đề gì?
-
+- Hệ thống là một trợ lý nội bộ thông minh phục vụ khối CS (Customer Service) và IT Helpdesk nhằm giải đáp các thắc mắc về chính sách hoàn tiền, quy trình cấp quyền và SLA xử lý sự cố. Hệ thống sử dụng kiến trúc RAG (Retrieval-Augmented Generation) để đảm bảo câu trả lời luôn được căn cứ (grounded) trên các tài liệu quy định thực tế của công ty, giảm thiểu tình trạng bịa đặt thông tin (hallucination).
 ---
 
 ## 2. Indexing Pipeline (Sprint 1)
@@ -27,24 +27,24 @@
 ### Tài liệu được index
 | File | Nguồn | Department | Số chunk |
 |------|-------|-----------|---------|
-| `policy_refund_v4.txt` | policy/refund-v4.pdf | CS | TODO |
-| `sla_p1_2026.txt` | support/sla-p1-2026.pdf | IT | TODO |
-| `access_control_sop.txt` | it/access-control-sop.md | IT Security | TODO |
-| `it_helpdesk_faq.txt` | support/helpdesk-faq.md | IT | TODO |
-| `hr_leave_policy.txt` | hr/leave-policy-2026.pdf | HR | TODO |
+| `policy_refund_v4.txt` | policy/refund-v4.pdf | CS | ~3-5 |
+| `sla_p1_2026.txt` | support/sla-p1-2026.pdf | IT | ~4-6 |
+| `access_control_sop.txt` | it/access-control-sop.md | IT Security | ~5-7 |
+| `it_helpdesk_faq.txt` | support/helpdesk-faq.md | IT | ~6-8 |
+| `hr_leave_policy.txt` | hr/leave-policy-2026.pdf | HR | ~5-7 |
 
 ### Quyết định chunking
 | Tham số | Giá trị | Lý do |
 |---------|---------|-------|
-| Chunk size | TODO tokens | TODO |
-| Overlap | TODO tokens | TODO |
-| Chunking strategy | Heading-based / paragraph-based | TODO |
-| Metadata fields | source, section, effective_date, department, access | Phục vụ filter, freshness, citation |
+| Chunk size | 400 tokens (~1600 ký tự) | Kích thước vừa đủ để bao quát một điều khoản hoặc một phân đoạn chính sách mà không làm loãng ngữ cảnh. |
+| Overlap | 80 tokens (~320 ký tự) | Đảm bảo các thông tin quan trọng ở ranh giới giữa các chunk không bị mất mạch ý. |
+| Chunking strategy | Heading-based | Ưu tiên cắt theo các tiêu đề mục === Section ... === để giữ tính toàn vẹn của nội dung theo logic tài liệu. |
+| Metadata fields | source, section, effective_date, department, access | Hỗ trợ lọc tài liệu theo phiên bản (freshness), phân quyền truy cập và phục vụ việc trích dẫn (citation) chính xác. |
 
 ### Embedding model
-- **Model**: TODO (OpenAI text-embedding-3-small / paraphrase-multilingual-MiniLM-L12-v2)
+- **Model**: OpenAI text-embedding-3-small
 - **Vector store**: ChromaDB (PersistentClient)
-- **Similarity metric**: Cosine
+- **Similarity metric**: Cosine Similarity
 
 ---
 
@@ -61,15 +61,16 @@
 ### Variant (Sprint 3)
 | Tham số | Giá trị | Thay đổi so với baseline |
 |---------|---------|------------------------|
-| Strategy | TODO (hybrid / dense) | TODO |
-| Top-k search | TODO | TODO |
-| Top-k select | TODO | TODO |
-| Rerank | TODO (cross-encoder / MMR) | TODO |
-| Query transform | TODO (expansion / HyDE / decomposition) | TODO |
+| Strategy | hybrid (Dense + BM25) | Kết hợp thêm tìm kiếm theo từ khóa (Sparse search). |
+| Top-k search | 10 | Giữ nguyên để so sánh công bằng. |
+| Top-k select | 3 | Giữ nguyên để duy trì "sweet spot" cho context. |
+| Rerank | False | Không thay đổi gì |
+| Query transform | False | Không thay đổi gì |
 
 **Lý do chọn variant này:**
 > TODO: Giải thích tại sao chọn biến này để tune.
 > Ví dụ: "Chọn hybrid vì corpus có cả câu tự nhiên (policy) lẫn mã lỗi và tên chuyên ngành (SLA ticket P1, ERR-403)."
+- Nhóm chọn Hybrid Retrieval vì bộ tài liệu nội bộ chứa nhiều thuật ngữ chuyên môn, mã lỗi (ERR-403, P1) và tên chính sách viết tắt. Dense search (Baseline) đôi khi bỏ lỡ các từ khóa chính xác này nếu chúng không xuất hiện thường xuyên trong tập dữ liệu huấn luyện của embedding model. Hybrid giúp đảm bảo bắt được cả ý nghĩa ngữ nghĩa lẫn các từ khóa quan trọng.
 
 ---
 
@@ -96,7 +97,7 @@ Answer:
 ### LLM Configuration
 | Tham số | Giá trị |
 |---------|---------|
-| Model | TODO (gpt-4o-mini / gemini-1.5-flash) |
+| Model | gpt-4o-mini |
 | Temperature | 0 (để output ổn định cho eval) |
 | Max tokens | 512 |
 
