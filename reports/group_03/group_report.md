@@ -1,10 +1,10 @@
 # Báo Cáo Nhóm — Lab Day 08: Full RAG Pipeline
 
-**Tên nhóm:** ___________  
+**Tên nhóm:** Group 03  
 **Thành viên:**
 | Tên | Vai trò | Email |
 |-----|---------|-------|
-| Đoàn Văn Tuấn | Tech Lead | ___ |
+| Đoàn Văn Tuấn | Tech Lead | doantuanvan2003@gmail.com |
 | Vũ Minh Khải | Retrieval Owner | vmkqa2@gmail.com |
 | Ninh Quang Trí | Eval Owner | nq.tri2511@gmail.com |
 | Lê Nguyễn Thanh Bình | Documentation Owner | thanhbinh.lenguyen.1208@gmail.com |
